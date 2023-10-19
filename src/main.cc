@@ -1,11 +1,11 @@
-#include <iostream>
+#include "../include/matrix.h"
 
 using namespace std;
 
 int main()
 {
+    Matrix<int> A(2, 2, 0);
+    A.Print();
 
-    cout << "Hello, World!" << endl;
-    
     return 0;
 }

@@ -15,4 +15,3 @@ if(MSVC)
 endif()
 
 add_executable(main "src/main.cc")
-
