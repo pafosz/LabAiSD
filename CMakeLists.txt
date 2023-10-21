@@ -14,4 +14,7 @@ if(MSVC)
     endif()
 endif()
 
+
+# Объявляем исполняемый файл
 add_executable(main "src/main.cc")
+
