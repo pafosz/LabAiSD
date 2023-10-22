@@ -3,15 +3,10 @@
 #include <random>
 #include <stdexcept>
 #include <utility>
-
+#include<type_traits>
 
 template <typename T>
 class Matrix {
-private:
-	T** data_;
-	int rows_;
-	int cols_;
-
 public:
 	Matrix();
 	Matrix(int rows, int cols, T init_value);
@@ -31,14 +26,18 @@ public:
 	Matrix<T> operator-(const Matrix<T>& other) const;
 	Matrix<T> operator*(const Matrix<T>& other) const;
 	Matrix<T> operator*(const T scalar) const;
-	Matrix<double> operator/(const T scalar) const;	
-	
-	int get_rows() const;	
+	Matrix<double> operator/(const T scalar) const;
+
+	int get_rows() const;
 	int get_cols() const;
 
 	T Trace() const;
-	T Det() const;
 	void Print() const;
+
+private:
+	T** data_;
+	int rows_;
+	int cols_;
 };
 
 template <typename T>
@@ -59,13 +58,27 @@ template <typename T>
 Matrix<T>::Matrix(int rows, int cols, T lower_bound, T upper_bound) : rows_(rows), cols_(cols) {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_real_distribution<T> dist(lower_bound, upper_bound);
 
-	data_ = new T * [rows];
-	for (int i = 0; i < rows; ++i) {
-		data_[i] = new T[cols];
-		for (int j = 0; j < cols; ++j) {
-			data_[i][j] = dist(gen);
+	if constexpr (std::is_integral_v<T>) {
+		std::uniform_int_distribution<T> dist(lower_bound, upper_bound);
+
+		data_ = new T * [rows];
+		for (int i = 0; i < rows; ++i) {
+			data_[i] = new T[cols];
+			for (int j = 0; j < cols; ++j) {
+				data_[i][j] = dist(gen);
+			}
+		}
+	}
+	else if constexpr (std::is_floating_point_v<T>) {
+		std::uniform_real_distribution<T> dist(lower_bound, upper_bound);
+
+		data_ = new T * [rows];
+		for (int i = 0; i < rows; ++i) {
+			data_[i] = new T[cols];
+			for (int j = 0; j < cols; ++j) {
+				data_[i][j] = dist(gen);
+			}
 		}
 	}
 }
@@ -202,22 +215,22 @@ int Matrix<T>::get_cols() const {
 }
 
 template <typename T>
-bool operator==(const Matrix<T>& A, const Matrix<T>& B) {
-	if (A.get_rows() != B.get_rows() || A.get_cols() != B.get_cols()) {
+bool operator==(const Matrix<T>& matrix_first, const Matrix<T>& matrix_second) {
+	if (matrix_first.get_rows() != matrix_second.get_rows() || matrix_first.get_cols() != matrix_second.get_cols()) {
 		return false;
 	}
 	const double kEpsilon = 1.0E-5;
-	for (int i = 0; i < A.get_rows(); ++i) {
-		for (int j = 0; j < A.get_cols(); ++j) {
-			if (A(i, j) - B(i, j) > kEpsilon) return false;
+	for (int i = 0; i < matrix_first.get_rows(); ++i) {
+		for (int j = 0; j < matrix_first.get_cols(); ++j) {
+			if (matrix_first(i, j) - matrix_second(i, j) > kEpsilon) return false;
 		}
 	}
 	return true;
 }
 
 template <typename T>
-bool operator!=(const Matrix<T>& A, const Matrix<T>& B) {
-	return (!(A == B));
+bool operator!=(const Matrix<T>& matrix_first, const Matrix<T>& matrix_second) {
+	return (!(matrix_first == matrix_second));
 }
 
 template <typename T>
@@ -234,118 +247,12 @@ T Matrix<T>::Trace() const {
 }
 
 template <typename T>
-T Matrix<T>::Det() const {
-	if(rows_ != cols_)
-		throw  std::invalid_argument("The determinant exists only for square matrices");
-	int N = rows_;
-	if(N == 2) return (data_[0][0] * data_[1][1]) - (data_[0][1] * data_[1][0]);
-	T det = 0;
-	
-	// Рекурсивно вычисляем определитель
-	for (int col = 0; col < N; col++) {
-		double** subMatrix = new double* [N - 1];
-		for (int i = 0; i < N - 1; i++) {
-			subMatrix[i] = new double[N - 1];
-		}
-
-		for (int i = 1; i < N; i++) {
-			int subMatrixCol = 0;
-			for (int j = 0; j < N; j++) {
-				if (j != col) {
-					subMatrix[i - 1][subMatrixCol] = data_[i][j];
-					subMatrixCol++;
-				}
-			}
-		}
-
-		double sign = (col % 2 == 0) ? 1 : -1;
-		det += sign * data_[0][col] * subMatrix.calculateDeterminant(); //subMatrix, N - 1
-
-		// Don't forget to free the memory
-		for (int i = 0; i < N - 1; i++) {
-			delete[] subMatrix[i];
-		}
-		delete[] subMatrix;
-	}
-
-	return det;
-
-
-
-
-}
-
-template <typename T>
 void Matrix<T>::Print() const {
 	for (int i = 0; i < rows_; ++i) {
 		for (int j = 0; j < cols_; ++j) {
+			std::cout.precision(4);
 			std::cout << std::setw(5) << data_[i][j] << " ";
 		}
 		std::cout << "\n";
 	}
-}
-
-//template <typename T>
-//double* solveLinearSystem(const Matrix<T>& A, const double* b) {
-//	int len = sizeof(b)/sizeof(int);
-//	static double x[len];
-//	double y[len];
-//
-//	for (int i = 0; i < len; ++i) {
-//		double sum = 0.0;
-//		for (int j = 0; j < len; ++j) {
-//			sum += A(i, j) * x[j];
-//		}
-//		y[i] = b[i] - sum;
-//	}
-//
-//	for (int i = len - 1; i >= 0; --i) {
-//		double sum = 0.0;
-//		for (int j = i + 1; j < len; ++j) {
-//			sum += A(i, j) * x[j];
-//		}
-//		x[i] = (1.0 / A(i, i)) * (y[i] - sum);
-//	}
-//
-//	return x;
-//}
-
-//template <typename T>
-//std::vector<double> solveLinearSystem(const Matrix<T>& A, const std::vector<double>& b) {
-//	int n = A.get_rows();
-//	std::vector<double> x(n);
-//	std::vector<double> y(n);
-//
-//	for (int i = 0; i < n; ++i) {
-//		double sum = 0.0;
-//		for (int j = 0; j < n; ++j) {
-//			sum += A(i, j) * x[j];
-//		}
-//		y[i] = b[i] - sum;
-//	}
-//
-//	for (int i = n - 1; i >= 0; --i) {
-//		double sum = 0.0;
-//		for (int j = i + 1; j < n; ++j) {
-//			sum += A(i, j) * x[j];
-//		}
-//		x[i] = (1.0 / A(i, i)) * (y[i] - sum);
-//	}
-//
-//	return x;
-//}
-template <typename T>
-double* solveLinearSystem(const Matrix<T>& A, const double* vx, const int size_vx) {
-	if (A.get_cols() != size_vx)
-		throw std::invalid_argument("The dimensions of the matrix and vector do not match");
-
-	double* vb = new double[size_vx];
-	std::fill(vb, vb + size_vx, 0);  // initialize the array with zeros
-
-	for (int i = 0; i < A.get_rows(); ++i) {
-		for (int j = 0; j < A.get_cols(); ++j) {
-			vb[i] += A(i, j) * vx[j];
-		}
-	}
-	return vb;
 }

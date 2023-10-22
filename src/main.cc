@@ -1,39 +1,56 @@
 #include "../include/matrix.h"
 
-using namespace std;
+
+template<typename T>
+T detMatrix3(const Matrix<T>& A) {
+    T detA = A(0, 0) * A(1, 1) * A(2, 2) +
+        A(0, 1) * A(1, 2) * A(2, 0) +
+        A(0, 2) * A(1, 0) * A(2, 1) -
+        A(0, 2) * A(1, 1) * A(2, 0) -
+        A(0, 1) * A(1, 0) * A(2, 2) -
+        A(0, 0) * A(1, 2) * A(2, 1);
+    return detA;
+}
 
 int main()
 {
-   
-    Matrix<int> A(3, 3, 0);
-    Matrix<int> B(2, 2, 0);
-    A(0, 0) = 1;
-    A(0, 1) = 3;
-    A(0, 2) = 9;
-    A(1, 0) = 6;
-    A(1, 1) = 2;
-    A(1, 2) = 3;
-    A(2, 0) = 9;
-    A(2, 1) = 8;
-    A(2, 2) = 5;
-    
-   
-    
-    Matrix<double> C;
-    C = (A / 2);
-    Matrix<double> D = C * 3;
-
-    D.Print();
-
-    const int kN = 3;
-    double x[kN] = {2, 3, 4};
-
-    double* b = solveLinearSystem(A, x, kN);
-    cout << '(';
-    for (int i = 0; i < kN; ++i) {
-        cout << '(' << b[i] << ', ';
+    /*Создадим матрицу А, которую заполним рандомными значениями в диапазоне от 1 до 10 (важно, что мы используем int числа для красивого вывода)
+      далее создаём вектор b, который так же инициализируем рандомными значениями в диапазоне от 1 до 10 (аналогично)
+      после чего создаём вектор x и заполняем его нулями */
+    Matrix<int> A(3, 3, 1, 10);
+    Matrix<int> b(3, 1, 1, 10);
+    Matrix<double> x(3, 1, 0);
+    /*Выведем матрицу А и вектор b*/
+    A.Print();
+    std::cout << std::endl;
+    b.Print();
+    std::cout << std::endl;
+    /*Вычислим определитель матрицы А для дальнейшего использования его в решении СЛАУ методом Крамера*/
+    double detA = detMatrix3(A);
+    /*Если определитель будет равен 0, мы не сможем поделить на него, что нужно делать в методе Крамера*/
+    if (detA != 0) {
+        for (int i = 0; i < A.get_rows(); ++i) {
+            Matrix<int> Ai = A; // Копия матрицы A
+            //Заполняем первую строку соответсвующими значениями из b
+            Ai(i, 0) = b(0, 0);
+            Ai(i, 1) = b(1, 0);
+            Ai(i, 2) = b(2, 0);
+            //Вычисляем определитель новой матрицы
+            double detAi = detMatrix3(Ai); 
+            //Делим определитель матрицы с элементами из b на определитель первоначальной матрицы A
+            x(i, 0) = static_cast<double>(detAi) / detA; // Приводим к типу double, чтобы не выводились ноли 
+        }
+        // Вывод готового решения
+        std::cout << "Solution x:\n";
+        for (int i = 0; i < x.get_rows(); ++i) {
+            std::cout << "x[" << i << "] = " << x(i, 0) << std::endl;
+        }
     }
-    cout << ')';
+    else {
+        std::cout << "The matrix A is singular. Cramer's method cannot be applied.\n";
+    }
+
+    
 
     return 0;
 }
