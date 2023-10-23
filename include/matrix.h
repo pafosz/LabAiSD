@@ -1,9 +1,11 @@
+#include <complex>
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
-#include<type_traits>
+
 
 template <typename T>
 class Matrix {
@@ -222,7 +224,23 @@ bool operator==(const Matrix<T>& matrix_first, const Matrix<T>& matrix_second) {
 	const double kEpsilon = 1.0E-5;
 	for (int i = 0; i < matrix_first.get_rows(); ++i) {
 		for (int j = 0; j < matrix_first.get_cols(); ++j) {
-			if (matrix_first(i, j) - matrix_second(i, j) > kEpsilon) return false;
+			if (matrix_first(i, j) - matrix_second(i, j) > kEpsilon) 
+				return false;
+		}
+	}
+	return true;
+}
+
+template <>
+bool operator==(const Matrix<std::complex<double>>& matrix_first, const Matrix<std::complex<double>>& matrix_second) {
+	if (matrix_first.get_rows() != matrix_second.get_rows() || matrix_first.get_cols() != matrix_second.get_cols()) {
+		return false;
+	}
+	const double kEpsilon = 1.0E-5;
+	for (int i = 0; i < matrix_first.get_rows(); ++i) {
+		for (int j = 0; j < matrix_first.get_cols(); ++j) {
+			if ((abs(matrix_first(i, j)) - abs(matrix_second(i, j))) > kEpsilon)
+				return false;
 		}
 	}
 	return true;
@@ -230,6 +248,11 @@ bool operator==(const Matrix<T>& matrix_first, const Matrix<T>& matrix_second) {
 
 template <typename T>
 bool operator!=(const Matrix<T>& matrix_first, const Matrix<T>& matrix_second) {
+	return (!(matrix_first == matrix_second));
+}
+
+template <>
+bool operator!=(const Matrix<std::complex<double>>& matrix_first, const Matrix<std::complex<double>>& matrix_second) {
 	return (!(matrix_first == matrix_second));
 }
 
@@ -246,6 +269,18 @@ T Matrix<T>::Trace() const {
 	return res;
 }
 
+template <>
+std::complex<double> Matrix<std::complex<double>>::Trace() const {
+	if (rows_ != cols_)
+		throw std::invalid_argument("Matrix is not square");
+	std::complex<double> res = 0;
+	for (int i = 0; i < rows_; ++i) {
+		for (int j = 0; j < cols_; ++j)
+			if (i == j) res += data_[i][j];
+	}		
+	return res;
+}
+		
 template <typename T>
 void Matrix<T>::Print() const {
 	for (int i = 0; i < rows_; ++i) {
