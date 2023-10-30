@@ -48,9 +48,7 @@ int main()
     }
     else {
         std::cout << "The matrix A is singular. Cramer's method cannot be applied.\n";
-    }
-
-    
+    }    
 
     return 0;
 }
